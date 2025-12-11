@@ -24,6 +24,10 @@ export default defineConfig(({ mode }) => {
           manualChunks: undefined
         }
       }
+    },
+    define: {
+      // 定义环境变量，用于控制是否显示提示词管理功能
+      __HIDE_PROMPT_MANAGEMENT__: env.VITE_HIDE_PROMPT_MANAGEMENT === 'true',
     }
   };
 });

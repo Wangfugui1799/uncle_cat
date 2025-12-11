@@ -19,6 +19,9 @@ import {
 } from './components/Modals';
 import { useAlert } from './components/CustomAlert';
 
+// 定义环境变量类型，用于控制是否显示提示词管理功能
+declare const __HIDE_PROMPT_MANAGEMENT__: boolean;
+
 const STEPS: StepDefinition[] = [
     { id: 'init', title: '创作初始化', icon: BookOpen },
     { id: 'dna', title: '核心DNA', icon: Activity, promptKey: 'DNA' },
@@ -83,6 +86,9 @@ export default function App() {
 
     const [showCustomRequestModal, setShowCustomRequestModal] = useState(false);
     const [customModalTitle, setCustomModalTitle] = useState("");
+    
+    // 控制移动端侧边栏显示/隐藏
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     // 使用ref保存回调函数，确保同步更新
     const customPromptCallbackRef = useRef<(val: string) => void>(() => { });
@@ -1276,7 +1282,7 @@ export default function App() {
 
                         <div className="space-y-6">
                             {/* 核心信息组 */}
-                            <div className="bg-stone-800/30 border border-stone-700/50 rounded-lg p-4">
+                            <div className="bg-stone-800/30 border border-stone-700/50 rounded-lg p-4 sm:p-5">
                                 <h3 className="text-sm font-semibold text-orange-400 uppercase mb-4 flex items-center">
                                     <BookOpen size={16} className="mr-2" />
                                     核心设定
@@ -1287,7 +1293,7 @@ export default function App() {
                                             核心脑洞 (Topic) <span className="text-red-500 ml-1">*</span>
                                         </label>
                                         <textarea
-                                            className="w-full h-36 bg-stone-950 border border-stone-800 rounded-lg p-3 text-white focus:ring-2 focus:ring-orange-500 outline-none resize-none transition-all hover:border-orange-700"
+                                            className="w-full min-h-[120px] sm:h-36 bg-stone-950 border border-stone-800 rounded-lg p-3 text-white focus:ring-2 focus:ring-orange-500 outline-none resize-none transition-all hover:border-orange-700"
                                             placeholder="请输入您的故事核心创意，例如：一个在修仙世界卖保险的穿越者，必须靠理赔来提升修为..."
                                             value={inputs.topic}
                                             onChange={(e) => setInputs(prev => ({ ...prev, topic: e.target.value }))}
@@ -1297,8 +1303,8 @@ export default function App() {
                             </div>
 
                             {/* 基础信息组 */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="bg-stone-800/30 border border-stone-700/50 rounded-lg p-4">
+                            <div className="grid grid-cols-1 gap-4">
+                                <div className="bg-stone-800/30 border border-stone-700/50 rounded-lg p-4 sm:p-5">
                                     <h3 className="text-sm font-semibold text-emerald-400 uppercase mb-4 flex items-center">
                                         <List size={16} className="mr-2" />
                                         基础属性
@@ -1365,7 +1371,7 @@ export default function App() {
                                 </div>
 
                                 {/* 格式与要求组 */}
-                                <div className="bg-stone-800/30 border border-stone-700/50 rounded-lg p-4">
+                                <div className="bg-stone-800/30 border border-stone-700/50 rounded-lg p-4 sm:p-5">
                                     <h3 className="text-sm font-semibold text-amber-400 uppercase mb-4 flex items-center">
                                         <LayoutDashboard size={16} className="mr-2" />
                                         格式与要求
@@ -1375,7 +1381,7 @@ export default function App() {
                                             <label className="block text-sm font-medium text-stone-400 mb-2">
                                                 小说名称
                                             </label>
-                                            <div className="flex gap-2">
+                                            <div className="flex flex-col sm:flex-row gap-2">
                                                 <input
                                                     type="text"
                                                     className="flex-1 bg-stone-950 border border-stone-800 rounded-lg p-3 text-white focus:ring-2 focus:ring-orange-500 outline-none transition-all hover:border-orange-700"
@@ -1412,14 +1418,14 @@ export default function App() {
                                                     }
                                                 }}
                                                     disabled={isGenerating || !inputs.topic || !inputs.genre}
-                                                    className="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap flex items-center gap-2"
+                                                    className="px-4 py-3 bg-orange-600 hover:bg-orange-500 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap flex items-center justify-center gap-2"
                                                 >
                                                     {isGenerating ? <RefreshCw size={16} className="animate-spin" /> : <Sparkles size={16} />}
                                                     AI生成
                                                 </button>
                                             </div>
                                         </div>
-                                        <div className="grid grid-cols-2 gap-4">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <div>
                                                 <label className="block text-sm font-medium text-stone-400 mb-2">
                                                     预计章节数
@@ -1466,7 +1472,7 @@ export default function App() {
                                                 自定义特殊要求
                                             </label>
                                             <textarea
-                                                className="w-full h-32 bg-stone-950 border border-stone-800 rounded-lg p-3 text-white focus:ring-2 focus:ring-orange-500 outline-none resize-none transition-all hover:border-orange-700"
+                                                className="w-full min-h-[100px] sm:h-32 bg-stone-950 border border-stone-800 rounded-lg p-3 text-white focus:ring-2 focus:ring-orange-500 outline-none resize-none transition-all hover:border-orange-700"
                                                 placeholder="额外的设定要求，如：主角必须是反派、不要系统流、加入科幻元素..."
                                                 value={inputs.customRequirements}
                                                 onChange={(e) => setInputs(prev => ({ ...prev, customRequirements: e.target.value }))}
@@ -1513,7 +1519,7 @@ export default function App() {
                     loadingMessage={loadingMessage}
                     copyToClipboard={copyToClipboard}
                     apiConfig={apiConfig}
-                    onEditPrompt={handleShowPrompt}
+                    onEditPrompt={!__HIDE_PROMPT_MANAGEMENT__ ? handleShowPrompt : undefined}
                     onSyncContext={handleSyncContext}
                     onUpdateViewChapter={(chapterNum) => setWritingStepState(prev => ({...prev, viewChapter: chapterNum}))}
                     onUpdateSelectedTheme={(theme) => setWritingStepState(prev => ({...prev, selectedTheme: theme}))}
@@ -1528,27 +1534,29 @@ export default function App() {
 
         if (currentStepId === 'dna') {
             return (
-                <div className="h-full flex flex-col space-y-4">
+                <div className="flex flex-col space-y-4">
                     {/* Action Bar */}
-                    <div className="flex justify-between items-center bg-stone-900 p-4 rounded-xl border border-stone-800">
-                        <h2 className="text-xl font-bold text-white flex items-center">
-                            {React.createElement(STEPS[currentStep].icon, { className: "mr-2 text-orange-400", size: 24 })} 
+                    <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 bg-stone-900 p-4 rounded-xl border border-stone-800">
+                        <h2 className="text-lg sm:text-xl font-bold text-white flex items-center">
+                            {React.createElement(STEPS[currentStep].icon, { className: "mr-2 text-orange-400", size: 22 })} 
                             {STEPS[currentStep].title}
                         </h2>
-                        <div className="flex space-x-3 flex-wrap justify-end">
+                        <div className="flex space-x-2 sm:space-x-3 flex-wrap justify-end w-full sm:w-auto">
                             {currentStepId === 'dna' && (
                                 <>
-                                    <button
-                                        onClick={() => handleShowPrompt('JUDGE')}
-                                        className="text-stone-500 hover:text-white transition-colors p-2 rounded-lg hover:bg-stone-800"
-                                        title="编辑判官提示词"
-                                    >
-                                        <FileText size={18} />
-                                    </button>
+                                    {!__HIDE_PROMPT_MANAGEMENT__ && (
+                                        <button
+                                            onClick={() => handleShowPrompt('JUDGE')}
+                                            className="text-stone-500 hover:text-white transition-colors p-3 rounded-lg hover:bg-stone-800"
+                                            title="编辑判官提示词"
+                                        >
+                                            <FileText size={18} />
+                                        </button>
+                                    )}
                                     <button
                                         onClick={handleJudge}
                                         disabled={isJudging}
-                                        className={`px-4 py-2 bg-red-900/50 hover:bg-red-800/50 border border-red-800 text-red-200 rounded-lg flex items-center transition-all ${isJudging ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg'}`}
+                                        className={`px-4 py-3 bg-red-900/50 hover:bg-red-800/50 border border-red-800 text-red-200 rounded-lg flex items-center transition-all ${isJudging ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg'} min-h-[48px] justify-center`}
                                     >
                                         {isJudging ? <RefreshCw size={18} className="mr-2 animate-spin" /> : <Gavel size={18} className="mr-2" />}
                                         {isJudging ? '审判中...' : '判官审题'}
@@ -1559,7 +1567,7 @@ export default function App() {
                             {content && (
                                 <button
                                     onClick={() => openCustomModal(STEPS[currentStep].title, (val) => handleGenerateStep(currentStepId, val))}
-                                    className="flex items-center px-4 py-2 bg-stone-800 hover:bg-stone-700 text-white rounded-lg transition-colors border border-stone-700"
+                                    className="flex items-center px-4 py-3 bg-stone-800 hover:bg-stone-700 text-white rounded-lg transition-colors border border-stone-700 min-h-[48px] justify-center"
                                 >
                                     <RefreshCw size={16} className="mr-2" /> 重写/修改
                                 </button>
@@ -1567,7 +1575,7 @@ export default function App() {
                             <button
                                 onClick={() => handleGenerateStep(currentStepId)}
                                 disabled={isGenerating}
-                                className={`flex items-center px-6 py-2 bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-lg transition-all ${isGenerating ? 'opacity-50 cursor-not-allowed' : 'shadow-lg hover:shadow-orange-500/20'}`}
+                                className={`flex items-center px-5 py-3 bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-lg transition-all ${isGenerating ? 'opacity-50 cursor-not-allowed' : 'shadow-lg hover:shadow-orange-500/20'} min-h-[48px] justify-center`}
                             >
                                 {isGenerating ? <RefreshCw className="animate-spin mr-2" /> : <Sparkles className="mr-2" />}
                                 {content ? '重新生成' : '立即生成'}
@@ -1576,18 +1584,18 @@ export default function App() {
                     </div>
 
                     {/* Content Area */}
-                    <div className="flex-1 bg-stone-900 border border-stone-800 rounded-xl p-6 overflow-y-auto relative">
+                    <div className="bg-stone-900 border border-stone-800 rounded-xl p-4 sm:p-6 overflow-y-auto min-h-[300px] max-h-[60vh] relative">
                         {isGenerating ? (
                             <div className="absolute inset-0 flex flex-col items-center justify-center bg-stone-900/90 z-10">
                                 <RefreshCw className="animate-spin w-12 h-12 text-orange-500 mb-4" />
-                                <p className="text-orange-300 font-mono animate-pulse">{loadingMessage || "AI 正在深度思考构建中..."}</p>
+                                <p className="text-orange-300 font-mono animate-pulse text-center px-4">{loadingMessage || "AI 正在深度思考构建中..."}</p>
                             </div>
                         ) : content ? (
                             <div className="max-w-4xl mx-auto space-y-6">
                                 {/* 显示生成的核心DNA（包含基础设定） */}
                                 <div>
                                     <div className="flex justify-end mb-4">
-                                        <button onClick={() => copyToClipboard(content as string)} className="text-stone-500 hover:text-white transition-colors p-2 rounded-lg hover:bg-stone-800"
+                                        <button onClick={() => copyToClipboard(content as string)} className="text-stone-500 hover:text-white transition-colors p-3 rounded-lg hover:bg-stone-800"
                                             title="复制核心DNA"
                                         >
                                             <Copy size={18} />
@@ -1606,10 +1614,10 @@ export default function App() {
 
                     {/* Next Step Button */}
                     {currentStep < STEPS.length - 1 && content && (
-                        <div className="flex justify-end">
+                        <div className="flex justify-end p-4 sm:p-0">
                             <button
                                 onClick={() => setCurrentStep(currentStep + 1)}
-                                className="px-8 py-3 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-bold rounded-lg shadow-lg transition-all transform hover:scale-105 hover:shadow-xl"
+                                className="w-full sm:w-auto px-8 py-3 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-bold rounded-lg shadow-lg transition-all transform hover:scale-105 hover:shadow-xl"
                             >
                                 下一步：{STEPS[currentStep + 1].title}
                             </button>
@@ -1649,26 +1657,26 @@ export default function App() {
             } else {
                 return (
                     <div className="h-full flex flex-col space-y-4">
-                        <div className="flex items-center bg-stone-900 p-4 rounded-xl border border-stone-800 shadow-lg">
-                            <h2 className="text-xl font-bold text-white flex items-center">
-                                <Activity className="mr-2 text-orange-400" size={24} />
+                        <div className="flex flex-wrap items-center justify-between bg-stone-900 p-4 rounded-xl border border-stone-800 shadow-lg gap-4">
+                            <h2 className="text-lg sm:text-xl font-bold text-white flex items-center">
+                                <Activity className="mr-2 text-orange-400" size={20} sm:size={24} />
                                 角色状态库 (State Archives)
                             </h2>
                             
-                            {/* 中间提示信息 */}
-                            <div className="flex-1 flex justify-center mx-4">
+                            {/* 中间提示信息 - 在移动端隐藏 */}
+                            <div className="hidden sm:flex flex-1 justify-center mx-4">
                                 <div className="flex items-center text-sm text-amber-300 bg-amber-900/30 px-3 py-1 rounded-full border border-amber-800">
                                     💡 提示：完成章节创作后，点击右上角 <Activity size={16} className="inline-block align-middle" /> 图标更新角色状态
                                 </div>
                             </div>
                             
-                            <div className="flex items-center space-x-3">
+                            <div className="flex items-center space-x-2 sm:space-x-3 w-full sm:w-auto justify-end">
                                 {history.length > 0 && (
-                                    <div className="relative">
+                                    <div className="relative flex-shrink-0">
                                         <select
                                             value={viewArchiveChapter}
                                             onChange={(e) => setViewArchiveChapter(parseInt(e.target.value))}
-                                            className="appearance-none bg-stone-800 text-white pl-4 pr-10 py-2 rounded-lg border border-stone-700 focus:outline-none focus:border-orange-500 font-mono text-sm shadow-sm hover:border-stone-600 transition-all"
+                                            className="appearance-none bg-stone-800 text-white pl-4 pr-10 py-2 rounded-lg border border-stone-700 focus:outline-none focus:border-orange-500 font-mono text-xs sm:text-sm shadow-sm hover:border-stone-600 transition-all min-w-[120px]"
                                         >
                                             {history.map(h => (
                                                 <option key={h.chapterNum} value={h.chapterNum}>
@@ -1683,9 +1691,9 @@ export default function App() {
                                 <button
                                     onClick={() => handleGenerateStep('state')}
                                     disabled={isGenerating}
-                                    className={`flex items-center px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-lg transition-all shadow-md hover:shadow-lg ${isGenerating ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    className={`flex items-center px-3 sm:px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-lg transition-all shadow-md hover:shadow-lg ${isGenerating ? 'opacity-50 cursor-not-allowed' : ''} text-xs sm:text-sm whitespace-nowrap`}
                                 >
-                                    {isGenerating ? <RefreshCw className="animate-spin mr-2" /> : <RefreshCw className="mr-2" />}
+                                    {isGenerating ? <RefreshCw size={14} className="animate-spin mr-2" /> : <RefreshCw size={14} className="mr-2" />}
                                     {history.length > 0 ? '重置初始状态' : '生成初始状态'}
                                 </button>
                             </div>
@@ -1695,22 +1703,24 @@ export default function App() {
                             {currentArchive ? (
                                 <div className="h-full grid grid-cols-1 lg:grid-cols-3 gap-0">
                                     {/* 左侧信息区 */}
-                                    <div className="col-span-1 lg:col-span-1 p-6 overflow-y-auto bg-stone-950/50 border-r border-stone-800">
-                                        <div className="space-y-6">
-                                            <div className="bg-stone-800/30 rounded-xl p-5 border border-stone-700/50 shadow-inner">
-                                                <h3 className="text-sm font-bold text-orange-300 uppercase mb-3 flex items-center">
-                                                    <Globe size={16} className="mr-2" /> 全局故事摘要
+                                    <div className="col-span-1 lg:col-span-1 p-4 sm:p-6 overflow-y-auto bg-stone-950/50 border-r border-stone-800">
+                                        <div className="space-y-4 sm:space-y-6">
+                                            <div className="bg-stone-800/30 rounded-xl p-4 sm:p-5 border border-stone-700/50 shadow-inner">
+                                                <h3 className="text-xs sm:text-sm font-bold text-orange-300 uppercase mb-2 sm:mb-3 flex items-center">
+                                                    <Globe size={14} sm:size={16} className="mr-2" />
+                                                    全局故事摘要
                                                 </h3>
-                                                <div className="max-h-60 overflow-y-auto custom-scrollbar pr-2">
+                                                <div className="max-h-48 sm:max-h-60 overflow-y-auto custom-scrollbar pr-2 text-sm">
                                                     <MarkdownViewer content={currentArchive.globalSummary} compact />
                                                 </div>
                                             </div>
 
-                                            <div className="bg-stone-800/30 rounded-xl p-5 border border-stone-700/50 shadow-inner">
-                                                <h3 className="text-sm font-bold text-emerald-300 uppercase mb-3 flex items-center">
-                                                    <FileText size={16} className="mr-2" /> 本章摘要
+                                            <div className="bg-stone-800/30 rounded-xl p-4 sm:p-5 border border-stone-700/50 shadow-inner">
+                                                <h3 className="text-xs sm:text-sm font-bold text-emerald-300 uppercase mb-2 sm:mb-3 flex items-center">
+                                                    <FileText size={14} sm:size={16} className="mr-2" />
+                                                    本章摘要
                                                 </h3>
-                                                <div className="max-h-60 overflow-y-auto custom-scrollbar pr-2">
+                                                <div className="max-h-48 sm:max-h-60 overflow-y-auto custom-scrollbar pr-2 text-sm">
                                                     <MarkdownViewer content={currentArchive.chapterSummary} compact />
                                                 </div>
                                             </div>
@@ -1718,12 +1728,15 @@ export default function App() {
                                     </div>
 
                                     {/* 右侧角色状态区 */}
-                                    <div className="col-span-1 lg:col-span-2 p-6 min-h-full overflow-y-auto">
-                                        <div className="bg-stone-800/30 rounded-xl p-5 border border-stone-700/50 shadow-inner">
-                                            <h3 className="text-sm font-bold text-amber-300 uppercase mb-3 flex items-center">
-                                                <Users size={16} className="mr-2" /> 角色状态档案
+                                    <div className="col-span-1 lg:col-span-2 p-4 sm:p-6 min-h-full overflow-y-auto">
+                                        <div className="bg-stone-800/30 rounded-xl p-4 sm:p-5 border border-stone-700/50 shadow-inner">
+                                            <h3 className="text-xs sm:text-sm font-bold text-amber-300 uppercase mb-2 sm:mb-3 flex items-center">
+                                                <Users size={14} sm:size={16} className="mr-2" />
+                                                角色状态档案
                                             </h3>
-                                            <MarkdownViewer content={currentArchive.characterState} />
+                                            <div className="text-sm">
+                                                <MarkdownViewer content={currentArchive.characterState} />
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -1752,12 +1765,12 @@ export default function App() {
         }
 
         return (
-            <div className="h-full flex flex-col space-y-4">
+            <div className="flex flex-col space-y-4">
                 {/* Action Bar */}
-                <div className="flex justify-between items-center bg-stone-900 p-4 rounded-xl border border-stone-800">
+                <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 bg-stone-900 p-4 rounded-xl border border-stone-800">
                     {/* 左侧：标题 */}
-                    <h2 className="text-xl font-bold text-white flex items-center">
-                        {React.createElement(STEPS[currentStep].icon, { className: "mr-2 text-orange-400", size: 24 })} 
+                    <h2 className="text-lg sm:text-xl font-bold text-white flex items-center">
+                        {React.createElement(STEPS[currentStep].icon, { className: "mr-2 text-orange-400", size: 22 })} 
                         {STEPS[currentStep].title}
                     </h2>
                     
@@ -1775,20 +1788,22 @@ export default function App() {
                     </div>
                     
                     {/* 右侧：其他按钮组 */}
-                    <div className="flex space-x-3 flex-wrap justify-end">
+                    <div className="flex space-x-2 sm:space-x-3 flex-wrap justify-end w-full sm:w-auto">
                         {currentStepId === 'dna' && (
                             <>
-                                <button
-                                    onClick={() => handleShowPrompt('JUDGE')}
-                                    className="text-stone-500 hover:text-white transition-colors p-2 rounded-lg hover:bg-stone-800"
-                                    title="编辑判官提示词"
-                                >
-                                    <FileText size={18} />
-                                </button>
+                                {!__HIDE_PROMPT_MANAGEMENT__ && (
+                                    <button
+                                        onClick={() => handleShowPrompt('JUDGE')}
+                                        className="text-stone-500 hover:text-white transition-colors p-3 rounded-lg hover:bg-stone-800"
+                                        title="编辑判官提示词"
+                                    >
+                                        <FileText size={18} />
+                                    </button>
+                                )}
                                 <button
                                     onClick={handleJudge}
                                     disabled={isJudging}
-                                    className={`px-4 py-2 bg-red-900/50 hover:bg-red-800/50 border border-red-800 text-red-200 rounded-lg flex items-center transition-all ${isJudging ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg'}`}
+                                    className={`px-4 py-3 bg-red-900/50 hover:bg-red-800/50 border border-red-800 text-red-200 rounded-lg flex items-center transition-all ${isJudging ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg'} min-h-[48px] justify-center`}
                                 >
                                     {isJudging ? <RefreshCw size={18} className="mr-2 animate-spin" /> : <Gavel size={18} className="mr-2" />}
                                     {isJudging ? '审判中...' : '判官审题'}
@@ -1799,7 +1814,7 @@ export default function App() {
                         {content && (
                             <button
                                 onClick={() => openCustomModal(STEPS[currentStep].title, (val) => handleGenerateStep(currentStepId, val))}
-                                className="flex items-center px-4 py-2 bg-stone-800 hover:bg-stone-700 text-white rounded-lg transition-colors border border-stone-700"
+                                className="flex items-center px-4 py-3 bg-stone-800 hover:bg-stone-700 text-white rounded-lg transition-colors border border-stone-700 min-h-[48px] justify-center"
                             >
                                 <RefreshCw size={16} className="mr-2" /> 重写/修改
                             </button>
@@ -1807,7 +1822,7 @@ export default function App() {
                         <button
                             onClick={() => handleGenerateStep(currentStepId)}
                             disabled={isGenerating}
-                            className={`flex items-center px-6 py-2 bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-lg transition-all ${isGenerating ? 'opacity-50 cursor-not-allowed' : 'shadow-lg hover:shadow-orange-500/20'}`}
+                            className={`flex items-center px-5 py-3 bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-lg transition-all ${isGenerating ? 'opacity-50 cursor-not-allowed' : 'shadow-lg hover:shadow-orange-500/20'} min-h-[48px] justify-center`}
                         >
                             {isGenerating ? <RefreshCw className="animate-spin mr-2" /> : <Sparkles className="mr-2" />}
                             {content ? '重新生成' : '立即生成'}
@@ -1816,17 +1831,19 @@ export default function App() {
                 </div>
 
                 {/* Content Area */}
-                <div className="flex-1 bg-stone-900 border border-stone-800 rounded-xl p-6 overflow-y-auto relative">
+                <div className="bg-stone-900 border border-stone-800 rounded-xl p-4 sm:p-6 overflow-y-auto min-h-[300px] max-h-[60vh] relative">
                     {isGenerating ? (
                         <div className="absolute inset-0 flex flex-col items-center justify-center bg-stone-900/90 z-10">
                             <RefreshCw className="animate-spin w-12 h-12 text-orange-500 mb-4" />
-                            <p className="text-orange-300 font-mono animate-pulse">{loadingMessage || "AI 正在深度思考构建中..."}</p>
+                            <p className="text-orange-300 font-mono animate-pulse text-center px-4">{loadingMessage || "AI 正在深度思考构建中..."}</p>
                         </div>
                     ) : content ? (
-                        <div className="max-w-4xl mx-auto">
-                            <div className="flex justify-end mb-2">
-                                <button onClick={() => copyToClipboard(content as string)} className="text-stone-500 hover:text-white flex items-center text-xs">
-                                    <Copy size={14} className="mr-1" /> 复制内容
+                        <div className="max-w-4xl mx-auto space-y-6">
+                            <div className="flex justify-end mb-4">
+                                <button onClick={() => copyToClipboard(content as string)} className="text-stone-500 hover:text-white transition-colors p-3 rounded-lg hover:bg-stone-800"
+                                    title="复制内容"
+                                >
+                                    <Copy size={18} />
                                 </button>
                             </div>
                             <MarkdownViewer content={cleanCodeBlock(content as string)} />
@@ -1841,10 +1858,10 @@ export default function App() {
 
                 {/* Next Step Button */}
                 {currentStep < STEPS.length - 1 && content && (
-                    <div className="flex justify-end">
+                    <div className="flex justify-end p-4 sm:p-0">
                         <button
                             onClick={() => setCurrentStep(currentStep + 1)}
-                            className="px-8 py-3 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-bold rounded-lg shadow-lg transition-all transform hover:scale-105 hover:shadow-xl"
+                            className="w-full sm:w-auto px-8 py-3 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-bold rounded-lg shadow-lg transition-all transform hover:scale-105 hover:shadow-xl"
                         >
                             下一步：{STEPS[currentStep + 1].title}
                         </button>
@@ -1859,43 +1876,48 @@ export default function App() {
         : undefined;
 
     return (
-        <div className="h-screen w-screen bg-stone-950 text-stone-100 flex overflow-hidden font-sans">
-            <PromptEditorModal
-                isOpen={showPromptModal}
-                onClose={() => setShowPromptModal(false)}
-                prompt={editingPromptKey ? getActivePrompt(editingPromptKey) : ""}
-                defaultPrompt={editingPromptKey ? getDefaultPrompt(editingPromptKey) : ""}
-                fullPrompt={fullPrompt}
-                isFullPromptView={isFullPromptView}
-                onTogglePromptView={() => setIsFullPromptView(prev => !prev)}
-                onSave={handleSavePrompt}
-                currentKey={editingPromptKey || undefined}
-                relatedKeys={relatedPromptKeys}
-                onKeyChange={(key) => {
-                    setEditingPromptKey(key);
-                    // 根据新的提示词类型更新当前查看的章节
-                    if (key === 'CHAPTER_1') {
-                        // 首章创作强制使用第1章
-                        setWritingStepState(prev => ({...prev, viewChapter: 1}));
-                    } else if (key === 'CHAPTER_NEXT') {
-                        // 后续章节确保章节号大于等于2
-                        setWritingStepState(prev => ({
-                            ...prev, 
-                            viewChapter: Math.max(prev.viewChapter, 2)
-                        }));
-                    }
-                }}
-                currentChapter={writingStepState.viewChapter}
-                totalChapters={inputs.numberOfChapters}
-                onChapterChange={(chapterNum) => setWritingStepState(prev => ({...prev, viewChapter: chapterNum}))}
-            />
+        <div className="h-screen w-screen bg-stone-950 text-stone-100 flex font-sans">
+            {/* 仅在未隐藏提示词管理功能时渲染提示词编辑和管理模态框 */}
+            {!__HIDE_PROMPT_MANAGEMENT__ && (
+                <>
+                    <PromptEditorModal
+                        isOpen={showPromptModal}
+                        onClose={() => setShowPromptModal(false)}
+                        prompt={editingPromptKey ? getActivePrompt(editingPromptKey) : ""}
+                        defaultPrompt={editingPromptKey ? getDefaultPrompt(editingPromptKey) : ""}
+                        fullPrompt={fullPrompt}
+                        isFullPromptView={isFullPromptView}
+                        onTogglePromptView={() => setIsFullPromptView(prev => !prev)}
+                        onSave={handleSavePrompt}
+                        currentKey={editingPromptKey || undefined}
+                        relatedKeys={relatedPromptKeys}
+                        onKeyChange={(key) => {
+                            setEditingPromptKey(key);
+                            // 根据新的提示词类型更新当前查看的章节
+                            if (key === 'CHAPTER_1') {
+                                // 首章创作强制使用第1章
+                                setWritingStepState(prev => ({...prev, viewChapter: 1}));
+                            } else if (key === 'CHAPTER_NEXT') {
+                                // 后续章节确保章节号大于等于2
+                                setWritingStepState(prev => ({
+                                    ...prev,
+                                    viewChapter: Math.max(prev.viewChapter, 2)
+                                }));
+                            }
+                        }}
+                        currentChapter={writingStepState.viewChapter}
+                        totalChapters={inputs.numberOfChapters}
+                        onChapterChange={(chapterNum) => setWritingStepState(prev => ({...prev, viewChapter: chapterNum}))}
+                    />
 
-            <PromptManagerModal
-                isOpen={showPromptManager}
-                onClose={() => setShowPromptManager(false)}
-                customPrompts={customPrompts}
-                onUpdatePrompts={setCustomPrompts}
-            />
+                    <PromptManagerModal
+                        isOpen={showPromptManager}
+                        onClose={() => setShowPromptManager(false)}
+                        customPrompts={customPrompts}
+                        onUpdatePrompts={setCustomPrompts}
+                    />
+                </>
+            )}
 
             <CustomRequestModal
                 isOpen={showCustomRequestModal}
@@ -1938,8 +1960,16 @@ export default function App() {
                 onSelectStructure={setSelectedPlotStructure}
             />
 
+            {/* Mobile Sidebar Overlay */}
+            {isSidebarOpen && (
+                <div 
+                    className="fixed inset-0 bg-black/50 z-10 md:hidden"
+                    onClick={() => setIsSidebarOpen(false)}
+                />
+            )}
+
             {/* Sidebar */}
-            <div className="w-64 bg-stone-900 border-r border-stone-800 flex flex-col hidden md:flex">
+            <div className={`w-56 sm:w-64 bg-stone-900 border-r border-stone-800 flex flex-col fixed inset-y-0 left-0 z-20 transform transition-transform duration-300 md:static md:transform-none ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:flex`}>
                 <div className="p-6 border-b border-stone-800">
                     <img
                         src={unclecatlogo}
@@ -1959,7 +1989,7 @@ export default function App() {
                                 isInitCompleted
                             ) : (step.id === 'writing' ? generatedData.chapters.length > 0 : (idx > 0 && idx < 7 ? !!generatedData[step.id as keyof GeneratedData] : false))}
                             onClick={() => setCurrentStep(idx)}
-                            onShowPrompt={step.promptKey ? () => handleShowPrompt(step.promptKey!) : undefined}
+                            onShowPrompt={!__HIDE_PROMPT_MANAGEMENT__ && step.promptKey ? () => handleShowPrompt(step.promptKey!) : undefined}
                         />
                     ))}
                 </div>
@@ -2006,13 +2036,15 @@ export default function App() {
                                                     apiConfig.provider === 'custom' ? '自定义' : '未配置'}
                                 </span>
                             </div>
-                            <button
-                                onClick={() => setShowPromptManager(true)}
-                                className="text-stone-500 hover:text-stone-300 p-1 rounded hover:bg-stone-800 transition-colors shrink-0"
-                                title="提示词管理"
-                            >
-                                <FileText size={14} />
-                            </button>
+                            {!__HIDE_PROMPT_MANAGEMENT__ && (
+                                <button
+                                    onClick={() => setShowPromptManager(true)}
+                                    className="text-stone-500 hover:text-stone-300 p-1 rounded hover:bg-stone-800 transition-colors shrink-0"
+                                    title="提示词管理"
+                                >
+                                    <FileText size={14} />
+                                </button>
+                            )}
                         </div>
                         <div className="flex items-center justify-between gap-2">
                             <div className="text-stone-500 text-[10px] ml-4 truncate flex-1 min-w-0" title={apiConfig.textModel}>
@@ -2039,10 +2071,17 @@ export default function App() {
 
             <div className="flex-1 flex flex-col min-w-0">
                 <header className="md:hidden p-4 bg-stone-900 border-b border-stone-800 flex items-center justify-between">
+                    <button
+                        onClick={() => setIsSidebarOpen(true)}
+                        className="p-2 rounded-lg hover:bg-stone-800 transition-colors mr-2"
+                        title="展开侧边栏"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                    </button>
                     <span className="font-bold">猫叔 智能小说创作助手</span>
                     <span className="text-sm text-stone-400">{STEPS[currentStep].title}</span>
                 </header>
-                <main className="flex-1 p-4 md:p-8 overflow-hidden h-full">
+                <main className="flex-1 p-3 md:p-4 lg:p-8 pb-20 overflow-auto h-full">
                     {renderContent()}
                 </main>
             </div>

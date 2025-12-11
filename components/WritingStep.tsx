@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, Save, ChevronLeft, ChevronRight, Edit, ThumbsUp, Star, MinusCircle, Check, Download, Sparkles, Skull, MessageSquare, Zap, Eye, PenTool, FileText, GitMerge, Activity } from 'lucide-react';
+import { RefreshCw, Save, ChevronLeft, ChevronRight, Edit, ThumbsUp, Star, MinusCircle, Check, Download, Sparkles, Skull, MessageSquare, Zap, Eye, PenTool, FileText, GitMerge, Activity, X } from 'lucide-react';
 import { UserInputs, GeneratedData, ApiConfig, ThemeMatch } from '../types';
 import { THEME_MATCH_PROMPT, THEME_LIBRARY_CONTENT, PROMPTS } from '../constants';
 import { generateContent, formatPrompt, cleanAIResponse } from '../services/apiService';
 import MarkdownViewer from './MarkdownViewer';
 import { useAlert } from './CustomAlert';
+
+declare const __HIDE_PROMPT_MANAGEMENT__: boolean;
 
 interface Props {
     inputs: UserInputs;
@@ -66,6 +68,12 @@ const WritingStep: React.FC<Props> = ({
     const [isCritiqueEditMode, setIsCritiqueEditMode] = useState(false);
     const [activeRewriteOption, setActiveRewriteOption] = useState<string | null>(null);
     const [isFeedbackEditing, setIsFeedbackEditing] = useState(false);
+    // 控制右侧边栏显示/隐藏的状态
+    const [isRightPanelOpen, setIsRightPanelOpen] = useState(false);
+    // 人性化改写功能状态
+    const [isHumanizeRewriting, setIsHumanizeRewriting] = useState(false);
+    const [humanizePrompt, setHumanizePrompt] = useState("");
+    const [showHumanizeInput, setShowHumanizeInput] = useState(false);
 
     useEffect(() => {
         const existingTitle = generatedData.chapters[viewChapter - 1]?.title;
@@ -392,22 +400,13 @@ const WritingStep: React.FC<Props> = ({
         if (!currentChapter?.content) return;
         setIsDemonEditing(true);
         try {
-            const prompt = PROMPTS.DEMON_EDITOR;
-            const userMessage = `请对以下章节进行魔鬼编辑点评：\n\n${currentChapter.content}`;
+            const systemPrompt = PROMPTS.DEMON_EDITOR;
+            const userMessage = `请对以下章节进行魔鬼编辑点评：
 
-            const response = await fetch(
-                `${apiConfig.baseUrl}/v1beta/models/${apiConfig.textModel}:generateContent?key=${apiConfig.apiKey}`,
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: userMessage }] }],
-                        systemInstruction: { parts: [{ text: prompt }] }
-                    })
-                }
-            );
-            const data = await response.json();
-            const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "No critique generated.";
+${currentChapter.content}`;
+
+            // 使用generateContent函数调用API，包含完整的错误处理和重试机制
+            const text = await generateContent(systemPrompt, userMessage, apiConfig);
             setDemonCritique(text);
             setIsCritiqueEditMode(false);
         } catch (e: any) {
@@ -429,18 +428,8 @@ const WritingStep: React.FC<Props> = ({
                 chapter_title: chapterParams.title || `第${viewChapter}章`
             });
 
-            const response = await fetch(
-                `${apiConfig.baseUrl}/v1beta/models/${apiConfig.textModel}:generateContent?key=${apiConfig.apiKey}`,
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }] }]
-                    })
-                }
-            );
-            const data = await response.json();
-            const rawContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            // 使用generateContent函数调用API，包含完整的错误处理和重试机制
+            const rawContent = await generateContent("", prompt, apiConfig);
             let newContent = cleanAIResponse(rawContent);
 
             const titleLineRegex = /^##\s*第.+?章.*$/m;
@@ -471,18 +460,8 @@ const WritingStep: React.FC<Props> = ({
 
             const fullPrompt = `${prompt}\n\n【当前章节草稿】\n${currentChapter?.content || '(无内容)'}`;
 
-            const response = await fetch(
-                `${apiConfig.baseUrl}/v1beta/models/${apiConfig.textModel}:generateContent?key=${apiConfig.apiKey}`,
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: fullPrompt }] }]
-                    })
-                }
-            );
-            const data = await response.json();
-            const rawContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            // 使用generateContent函数调用API，包含完整的错误处理和重试机制
+            const rawContent = await generateContent("", fullPrompt, apiConfig);
             let newContent = cleanAIResponse(rawContent);
 
             const titleLineRegex = /^##\s*第.+?章.*$/m;
@@ -499,6 +478,61 @@ const WritingStep: React.FC<Props> = ({
         } finally {
             setIsFeedbackEditing(false);
         }
+    };
+
+    // 人性化改写处理函数
+    const handleHumanizeRewrite = async () => {
+        if (!currentChapter?.content) return;
+        setIsHumanizeRewriting(true);
+        try {
+            // 构建人性化改写提示词
+            const systemPrompt = "你是一位专业的中文编辑，擅长模仿给定范文的风格，将生硬的文本改写为更自然、流畅的中文文章。";
+            const userPrompt = `请根据以下要求改写提供的文本：
+
+### 要求：
+1. 保持原文的核心内容和意思不变
+2. 仔细分析并模仿范文的写作风格、语气、句式和用词特点
+3. 将原文改写成与范文风格一致的自然流畅的中文表达
+4. 保持适当的段落结构
+
+### 范文：
+${humanizePrompt || '无范文，仅需提升文字的自然度和流畅度'}
+
+### 原文：
+${currentChapter.content}
+
+### 改写后的文本：`;
+
+            // 使用generateContent函数调用API，包含完整的错误处理和重试机制
+            const rawContent = await generateContent(systemPrompt, userPrompt, apiConfig);
+            let newContent = cleanAIResponse(rawContent);
+
+            const titleLineRegex = /^##\s*第.+?章.*$/m;
+            newContent = newContent.replace(titleLineRegex, '').trim();
+
+            if (newContent) {
+                onRewrite(viewChapter, newContent);
+                setHumanizePrompt("");
+                setShowHumanizeInput(false);
+            }
+
+        } catch (e: any) {
+            console.error("人性化改写失败：", e);
+            showAlert("人性化改写失败：" + e.message, "error");
+        } finally {
+            setIsHumanizeRewriting(false);
+        }
+    };
+
+    // 显示/隐藏人性化改写输入框
+    const handleShowHumanizeInput = () => {
+        setShowHumanizeInput(!showHumanizeInput);
+    };
+
+    // 取消人性化改写
+    const handleCancelHumanize = () => {
+        setShowHumanizeInput(false);
+        setHumanizePrompt("");
     };
 
     const handleTitleSave = () => {
@@ -529,14 +563,14 @@ const WritingStep: React.FC<Props> = ({
     return (
         <div className="flex flex-col h-full bg-stone-900/50 rounded-xl overflow-hidden border border-stone-800">
             {/* Header */}
-            <div className="p-4 border-b border-stone-800 bg-stone-900 flex justify-between items-center shrink-0">
-                <div className="flex items-center space-x-2">
+            <div className="p-4 border-b border-stone-800 bg-stone-900 flex flex-wrap justify-between items-center gap-3 shrink-0">
+                <div className="flex items-center space-x-2 sm:space-x-3">
                     <button
                         disabled={viewChapter === 1}
                         onClick={() => {
                             onUpdateViewChapter(viewChapter - 1);
                         }}
-                        className="p-1.5 text-stone-400 hover:text-white disabled:opacity-30 rounded hover:bg-stone-800"
+                        className="p-3 text-stone-400 hover:text-white disabled:opacity-30 rounded-lg hover:bg-stone-800 min-w-[40px] flex items-center justify-center"
                         type="button"
                     >
                         <ChevronLeft size={20} />
@@ -554,18 +588,18 @@ const WritingStep: React.FC<Props> = ({
                         </div>
 
                         {isTitleEditing ? (
-                            <div className="flex items-center h-7">
+                            <div className="flex items-center h-8">
                                 <input
                                     value={tempTitle}
                                     onChange={(e) => setTempTitle(e.target.value)}
                                     placeholder={`输入第${viewChapter}章标题...`}
-                                    className="bg-stone-800 text-white text-sm px-2 py-1 rounded border border-stone-600 focus:border-orange-500 outline-none w-48 md:w-64"
+                                    className="bg-stone-800 text-white text-sm px-2 py-1.5 rounded border border-stone-600 focus:border-orange-500 outline-none w-48 md:w-64"
                                     autoFocus
                                 />
-                                <button onClick={handleTitleSave} className="ml-2 text-emerald-400 hover:text-emerald-300 p-1 hover:bg-stone-800 rounded" type="button"><Check size={16} /></button>
+                                <button onClick={handleTitleSave} className="ml-2 text-emerald-400 hover:text-emerald-300 p-2 hover:bg-stone-800 rounded-lg" type="button"><Check size={16} /></button>
                             </div>
                         ) : (
-                            <h2 className="font-bold text-base md:text-lg flex items-center cursor-pointer hover:text-orange-400 h-7" onClick={startEditing}>
+                            <h2 className="font-bold text-base md:text-lg flex items-center cursor-pointer hover:text-orange-400 h-8" onClick={startEditing}>
                                 {chapterParams.title === `第${viewChapter}章` ? <span className="text-stone-500 italic font-normal text-sm">点击输入标题...</span> : chapterParams.title}
                                 <Edit size={12} className="ml-2 opacity-50" />
                             </h2>
@@ -585,21 +619,21 @@ const WritingStep: React.FC<Props> = ({
                                 setIsEditMode(false);
                             }
                         }}
-                        className="p-1.5 text-stone-400 hover:text-white disabled:opacity-30 rounded hover:bg-stone-800 ml-2"
+                        className="p-3 text-stone-400 hover:text-white disabled:opacity-30 rounded-lg hover:bg-stone-800 ml-2 min-w-[40px] flex items-center justify-center"
                         type="button"
                     >
                         <ChevronRight size={20} />
                     </button>
                 </div>
 
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-2 sm:space-x-3">
                     <button
                         onClick={() => setIsEditMode(!isEditMode)}
-                        className={`p-2 rounded-lg transition-colors ${isEditMode ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/20' : 'bg-stone-800 hover:bg-stone-700 text-stone-300'}`}
+                        className={`p-3 rounded-lg transition-colors min-w-[40px] flex items-center justify-center ${isEditMode ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/20' : 'bg-stone-800 hover:bg-stone-700 text-stone-300'}`}
                         title={isEditMode ? "切换到阅读模式" : "切换到编辑模式"}
                         type="button"
                     >
-                        {isEditMode ? <Eye size={16} /> : <PenTool size={16} />}
+                        {isEditMode ? <Eye size={18} /> : <PenTool size={18} />}
                     </button>
 
                     <button
@@ -608,11 +642,11 @@ const WritingStep: React.FC<Props> = ({
                             onSyncContext(viewChapter);
                         }}
                         disabled={!currentChapter?.content || isGenerating || isSyncingContext}
-                        className="p-2 bg-stone-800 hover:bg-stone-700 text-amber-300 hover:text-white rounded-lg transition-colors border border-amber-900/30"
+                        className="p-3 bg-stone-800 hover:bg-stone-700 text-amber-300 hover:text-white rounded-lg transition-colors border border-amber-900/30 min-w-[40px] flex items-center justify-center"
                         title="状态更新"
                         type="button"
                     >
-                        <Activity size={16} className={isSyncingContext ? 'animate-spin' : ''} />
+                        <Activity size={18} className={isSyncingContext ? 'animate-spin' : ''} />
                     </button>
 
                     <button
@@ -621,27 +655,35 @@ const WritingStep: React.FC<Props> = ({
                             onGenerate(viewChapter, params, selectedTheme);
                         }}
                         disabled={isGenerating}
-                        className="p-2 bg-stone-800 hover:bg-stone-700 text-stone-300 rounded-lg hover:text-white transition-colors"
+                        className="p-3 bg-stone-800 hover:bg-stone-700 text-stone-300 rounded-lg hover:text-white transition-colors min-w-[40px] flex items-center justify-center"
                         title="重新生成"
                         type="button"
                     >
-                        <RefreshCw size={16} className={isGenerating ? 'animate-spin' : ''} />
+                        <RefreshCw size={18} className={isGenerating ? 'animate-spin' : ''} />
                     </button>
 
                     <button
                         onClick={downloadChapter}
                         disabled={!currentChapter?.content}
-                        className="p-2 bg-stone-800 hover:bg-stone-700 text-stone-300 rounded-lg"
+                        className="p-3 bg-stone-800 hover:bg-stone-700 text-stone-300 rounded-lg min-w-[40px] flex items-center justify-center"
                         title="下载章节"
                         type="button"
                     >
-                        <Download size={16} />
+                        <Download size={18} />
                     </button>
                 </div>
             </div>
 
             {/* Content Area */}
-            <div className="flex-1 flex overflow-hidden">
+            <div className="flex-1 flex overflow-hidden relative">
+                {/* Background Overlay for Mobile Panel */}
+                {isRightPanelOpen && (
+                    <div 
+                        className="absolute inset-0 bg-black/50 z-10 lg:hidden"
+                        onClick={() => setIsRightPanelOpen(false)}
+                    />
+                )}
+
                 {/* Main Editor */}
                 <div className="flex-1 overflow-hidden bg-stone-900 relative flex flex-col">
                     {isGenerating ? (
@@ -694,23 +736,51 @@ const WritingStep: React.FC<Props> = ({
                             )}
                         </div>
                     )}
+
+                    {/* Mobile Panel Toggle Button */}
+                    <button
+                        onClick={() => setIsRightPanelOpen(true)}
+                        className="absolute bottom-6 right-6 z-10 p-3 bg-orange-600 hover:bg-orange-500 text-white rounded-full shadow-lg transition-all transform hover:scale-110 lg:hidden"
+                        title="显示工具面板"
+                    >
+                        <Zap size={20} />
+                    </button>
                 </div>
 
-                {/* Right Tools Panel - No Changes */}
-                <div className="w-80 bg-stone-900 border-l border-stone-800 flex flex-col hidden lg:flex shrink-0 h-full">
+                {/* Right Tools Panel - Mobile Responsive */}
+                <div className={`
+                    w-full lg:w-80 bg-stone-900 border-l border-stone-800 flex flex-col shrink-0 h-full
+                    lg:flex
+                    fixed lg:relative
+                    top-0 right-0 z-20
+                    transform transition-transform duration-300 ease-in-out
+                    ${isRightPanelOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
+                `}>
                     {/* Theme Recommendation */}
                     <div className="flex flex-col max-h-[40%] min-h-0 border-b border-stone-800">
                         <div className="p-4 border-b border-stone-800 shrink-0 bg-stone-900 sticky top-0 z-10 flex justify-between items-center">
                             <h3 className="text-xs font-bold text-stone-400 uppercase flex items-center">
                                 <Sparkles size={14} className="mr-2 text-amber-500" /> 题材公式推荐
                             </h3>
-                            <button
-                                onClick={() => onEditPrompt('THEME_MATCH_PROMPT')}
-                                className="text-stone-600 hover:text-white transition-colors"
-                                title="查看/编辑题材匹配提示词"
-                            >
-                                <FileText size={12} />
-                            </button>
+                            <div className="flex space-x-2">
+                                {!__HIDE_PROMPT_MANAGEMENT__ && (
+                                    <button
+                                        onClick={() => onEditPrompt('THEME_MATCH_PROMPT')}
+                                        className="text-stone-600 hover:text-white transition-colors"
+                                        title="查看/编辑题材匹配提示词"
+                                    >
+                                        <FileText size={12} />
+                                    </button>
+                                )}
+                                {/* Mobile Close Button */}
+                                <button
+                                    onClick={() => setIsRightPanelOpen(false)}
+                                    className="text-stone-600 hover:text-white transition-colors lg:hidden"
+                                    title="关闭工具面板"
+                                >
+                                    <X size={14} />
+                                </button>
+                            </div>
                         </div>
                         <div className="overflow-y-auto p-4 space-y-2 custom-scrollbar">
                             {isThemeGenerating ? (
@@ -772,13 +842,15 @@ const WritingStep: React.FC<Props> = ({
                                     <h3 className="text-xs font-bold text-red-400 flex items-center">
                                         <Skull size={14} className="mr-2" /> 魔鬼编辑审阅
                                     </h3>
-                                    <button
-                                        onClick={() => onEditPrompt('DEMON_EDITOR')}
-                                        className="text-stone-600 hover:text-white transition-colors"
-                                        title="查看/编辑魔鬼编辑提示词"
-                                    >
-                                        <FileText size={12} />
-                                    </button>
+                                    {!__HIDE_PROMPT_MANAGEMENT__ && (
+                                            <button
+                                                onClick={() => onEditPrompt('DEMON_EDITOR')}
+                                                className="text-stone-600 hover:text-white transition-colors"
+                                                title="查看/编辑魔鬼编辑提示词"
+                                            >
+                                                <FileText size={12} />
+                                            </button>
+                                        )}
                                 </div>
 
                                 {!demonCritique ? (
@@ -800,13 +872,15 @@ const WritingStep: React.FC<Props> = ({
                                         {/* Buttons Pinned to Bottom */}
                                         <div className="p-3 border-t border-stone-700/50 bg-stone-900/50 shrink-0 space-y-2">
                                             <div className="flex justify-end mb-2">
-                                                <button
-                                                    onClick={() => onEditPrompt('DEMON_REWRITE_SPECIFIC')}
-                                                    className="text-[10px] text-stone-600 hover:text-white flex items-center transition-colors"
-                                                    title="查看/编辑重写提示词"
-                                                >
-                                                    <FileText size={10} className="mr-1" /> 重写提示词
-                                                </button>
+                                                {!__HIDE_PROMPT_MANAGEMENT__ && (
+                                                    <button
+                                                        onClick={() => onEditPrompt('DEMON_REWRITE_SPECIFIC')}
+                                                        className="text-[10px] text-stone-600 hover:text-white flex items-center transition-colors"
+                                                        title="查看/编辑重写提示词"
+                                                    >
+                                                        <FileText size={10} className="mr-1" /> 重写提示词
+                                                    </button>
+                                                )}
                                             </div>
                                             <div className="grid grid-cols-1 gap-2">
                                                 <button
@@ -860,13 +934,15 @@ const WritingStep: React.FC<Props> = ({
                                     <h3 className="text-xs font-bold text-orange-400 flex items-center">
                                         <MessageSquare size={14} className="mr-2" /> 读者反馈模拟
                                     </h3>
-                                    <button
-                                        onClick={() => onEditPrompt('USER_FEEDBACK_REWRITE')}
-                                        className="text-stone-600 hover:text-white transition-colors"
-                                        title="查看/编辑反馈提示词"
-                                    >
-                                        <FileText size={12} />
-                                    </button>
+                                    {!__HIDE_PROMPT_MANAGEMENT__ && (
+                                            <button
+                                                onClick={() => onEditPrompt('USER_FEEDBACK_REWRITE')}
+                                                className="text-stone-600 hover:text-white transition-colors"
+                                                title="查看/编辑反馈提示词"
+                                            >
+                                                <FileText size={12} />
+                                            </button>
+                                        )}
                                 </div>
                                 {!showFeedbackInput ? (
                                     <button
@@ -902,6 +978,66 @@ const WritingStep: React.FC<Props> = ({
                                             </button>
                                             <button
                                                 onClick={() => setShowFeedbackInput(false)}
+                                                className="px-2 py-1 bg-stone-700 text-stone-300 text-xs rounded hover:bg-stone-600"
+                                                type="button"
+                                            >
+                                                取消
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Humanize Rewrite Feature */}
+                            <div className="bg-stone-800/30 rounded-lg p-3 border border-stone-700/50 shrink-0">
+                                <div className="flex items-center justify-between mb-2">
+                                    <h3 className="text-xs font-bold text-blue-400 flex items-center">
+                                        <PenTool size={14} className="mr-2" /> 人性化改写
+                                    </h3>
+                                    {!__HIDE_PROMPT_MANAGEMENT__ && (
+                                            <button
+                                                onClick={() => onEditPrompt('HUMANIZE_REWRITE')}
+                                                className="text-stone-600 hover:text-white transition-colors"
+                                                title="查看/编辑人性化改写提示词"
+                                            >
+                                                <FileText size={12} />
+                                            </button>
+                                        )}
+                                </div>
+                                {!showHumanizeInput ? (
+                                    <button
+                                        onClick={handleShowHumanizeInput}
+                                        className="w-full py-2 bg-blue-900/20 hover:bg-blue-900/40 text-blue-300 text-xs rounded border border-blue-900/50 transition-colors"
+                                        type="button"
+                                    >
+                                        开始人性化改写
+                                    </button>
+                                ) : (
+                                    <div className="space-y-2">
+                                        <textarea
+                                            value={humanizePrompt}
+                                            onChange={(e) => setHumanizePrompt(e.target.value)}
+                                            placeholder="请输入范文，AI将模仿其风格进行改写..."
+                                            className="w-full h-20 bg-stone-950 border border-stone-700 rounded p-2 text-xs text-stone-300 resize-none outline-none focus:border-blue-500"
+                                        />
+                                        <div className="flex space-x-2">
+                                            <button
+                                                onClick={handleHumanizeRewrite}
+                                                disabled={isHumanizeRewriting}
+                                                className="flex-1 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-500 disabled:opacity-50 flex items-center justify-center gap-1"
+                                                type="button"
+                                            >
+                                                {isHumanizeRewriting ? (
+                                                    <>
+                                                        <RefreshCw size={12} className="animate-spin" />
+                                                        改写中...
+                                                    </>
+                                                ) : (
+                                                    "确认改写"
+                                                )}
+                                            </button>
+                                            <button
+                                                onClick={handleCancelHumanize}
                                                 className="px-2 py-1 bg-stone-700 text-stone-300 text-xs rounded hover:bg-stone-600"
                                                 type="button"
                                             >
