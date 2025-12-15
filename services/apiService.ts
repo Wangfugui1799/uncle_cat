@@ -1,7 +1,7 @@
 import { ApiConfig } from "../types";
 
 // 定义模型类型
-type ModelType = 'gemini' | 'claude' | 'deepseek' | 'openai' | 'custom';
+type ModelType = 'gemini' | 'claude' | 'deepseek' | 'openai' | 'openrouter' | 'custom';
 
 // 模型配置接口
 interface ModelConfig {
@@ -19,6 +19,8 @@ const getModelType = (baseUrl: string, provider?: string): ModelType => {
         return 'claude';
     } else if (baseUrl.includes('deepseek.com') || provider === 'deepseek') {
         return 'deepseek';
+    } else if (baseUrl.includes('openrouter.ai') || provider === 'openrouter') {
+        return 'openrouter';
     } else if (baseUrl.includes('openai.com') || provider === 'openai') {
         return 'openai';
     } else {
@@ -29,7 +31,7 @@ const getModelType = (baseUrl: string, provider?: string): ModelType => {
 // 构建API请求URL
 const buildApiUrl = (modelType: ModelType, baseUrl: string, textModel: string, apiKey: string): string => {
     const cleanBase = baseUrl.replace(/\/+$/, '');
-    
+
     switch (modelType) {
         case 'gemini':
             return `${cleanBase}/v1beta/models/${textModel}:generateContent?key=${apiKey}`;
@@ -41,7 +43,8 @@ const buildApiUrl = (modelType: ModelType, baseUrl: string, textModel: string, a
             } else {
                 return `${cleanBase}/v1/messages`;
             }
-        default: // openai, deepseek, custom
+        case 'openrouter':
+        default: // openai, deepseek, openrouter, custom
             if (cleanBase.endsWith('/chat/completions')) {
                 return cleanBase;
             } else if (cleanBase.endsWith('/v1')) {
@@ -65,8 +68,8 @@ const buildHeaders = (modelType: ModelType, apiKey: string): Record<string, stri
             headers['Authorization'] = `Bearer ${apiKey}`;
             headers['x-api-key'] = apiKey;
             break;
-        default: // openai, deepseek, custom
-            // OpenAI兼容API只需要Authorization头
+        default: // openai, deepseek, openrouter, custom
+            // OpenAI兼容API（包括OPENROUTER）只需要Authorization头
             headers['Authorization'] = `Bearer ${apiKey}`;
             break;
     }
@@ -82,8 +85,9 @@ const getMaxTokens = (modelType: ModelType): number => {
         case 'claude':
         case 'gemini':
         case 'openai':
+        case 'openrouter':
         case 'custom':
-            return 32768; // Claude、Gemini、OpenAI和Custom模型支持32768
+            return 32768; // Claude、Gemini、OpenAI、OPENROUTER和Custom模型支持32768
         default:
             return 8192; // 其他模型默认使用8192
     }

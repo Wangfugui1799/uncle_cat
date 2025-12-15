@@ -622,6 +622,21 @@ export const ConfigModal: React.FC<{ isOpen: boolean; onClose: () => void; confi
                 { value: 'custom', label: '自定义' }
             ]
         },
+        openrouter: {
+            baseUrl: 'https://openrouter.ai/api/v1',
+            models: [
+                { value: 'anthropic/claude-3.5-sonnet', label: 'Claude 3.5 Sonnet (Anthropic)' },
+                { value: 'openai/gpt-4o', label: 'GPT-4o (OpenAI)' },
+                { value: 'openai/gpt-4o-mini', label: 'GPT-4o Mini (OpenAI)' },
+                { value: 'google/gemini-2.5-flash-exp', label: 'Gemini 2.5 Flash Experimental (Google)' },
+                { value: 'google/gemini-2.5-pro', label: 'Gemini 2.5 Pro (Google)' },
+                { value: 'google/gemini-1.5-pro', label: 'Gemini 1.5 Pro (Google)' },
+                { value: 'meta-llama/llama-3.3-70b-instruct', label: 'Llama 3.3 70B (Meta)' },
+                { value: 'qwen/qwen-2.5-72b-instruct', label: 'Qwen 2.5 72B (Alibaba)' },
+                { value: 'deepseek/deepseek-chat', label: 'DeepSeek Chat (DeepSeek)' },
+                { value: 'custom', label: '自定义' }
+            ]
+        },
         custom: {
             baseUrl: '',
             models: [
@@ -720,6 +735,7 @@ export const ConfigModal: React.FC<{ isOpen: boolean; onClose: () => void; confi
                             <option value="openai">OpenAI</option>
                             <option value="claude">Anthropic Claude</option>
                             <option value="deepseek">DeepSeek</option>
+                            <option value="openrouter">OpenRouter (AI模型聚合)</option>
                             <option value="custom">自定义 (OpenAI兼容)</option>
                         </select>
                     </div>
@@ -752,6 +768,7 @@ export const ConfigModal: React.FC<{ isOpen: boolean; onClose: () => void; confi
                             {localConfig.provider === 'openai' && '获取API密钥: https://platform.openai.com/api-keys'}
                             {localConfig.provider === 'claude' && '获取API密钥: https://console.anthropic.com/settings/keys'}
                             {localConfig.provider === 'deepseek' && '获取API密钥: https://platform.deepseek.com/apikeys'}
+                            {localConfig.provider === 'openrouter' && '获取API密钥: https://openrouter.ai/keys'}
                             {localConfig.provider === 'custom' && '输入第三方OpenAI兼容API密钥'}
                         </p>
                     </div>
